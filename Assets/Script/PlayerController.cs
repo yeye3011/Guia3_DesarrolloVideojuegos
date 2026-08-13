@@ -3,13 +3,16 @@ using UnityEngine;
 public class PlayerController : MonoBehaviour
 {
     [Header("Movimiento")]
-    [SerializeField] private float moveSpeed = 3f;
+    [SerializeField] private float moveSpeed = 5f;
 
     [Header("Cámara")]
     [SerializeField] private Transform cameraTransform;
     [SerializeField] private float lookSensitivity = 0.1f;
     [SerializeField] private float minLookX = -80f;
     [SerializeField] private float maxLookX = 80f;
+
+    [SerializeField]
+    private InteractionModeController modeController;
 
     [Header("Multitouch")]
     [SerializeField] private SplitScreenTouchZones touchZones;
@@ -38,17 +41,24 @@ public class PlayerController : MonoBehaviour
 
     private void LookCamera()
     {
+        if (modeController.IsDragMode ||
+            modeController.IsSwipeMode)
+        {
+            return;
+        }
+
         Vector2 look = touchZones.LookDelta;
 
-        float lookX = look.x * lookSensitivity;
-        float lookY = look.y * lookSensitivity;
+        float lookX =
+            look.x * lookSensitivity;
 
-        // Giro horizontal del jugador
+        float lookY =
+            look.y * lookSensitivity;
+
         transform.Rotate(
             Vector3.up * lookX
         );
 
-        // Giro vertical de la cámara
         cameraRotationX -= lookY;
 
         cameraRotationX = Mathf.Clamp(

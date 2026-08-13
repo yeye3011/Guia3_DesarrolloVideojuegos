@@ -34,32 +34,19 @@ public class CubeSelector : MonoBehaviour
 
             if (cube != null)
             {
-                SelectCube(cube);
+                currentCube = cube;
                 return;
             }
         }
 
-        ClearSelection();
+        currentCube = null;
     }
 
-    private void SelectCube(CubeInteractable cube)
-    {
-        if (currentCube == cube)
-            return;
-
-        if (currentCube != null)
-            currentCube.SetSelected(false);
-
-        currentCube = cube;
-        currentCube.SetSelected(true);
-    }
-
-    private void ClearSelection()
+    public void HighlightCurrentCube(bool value)
     {
         if (currentCube != null)
         {
-            currentCube.SetSelected(false);
-            currentCube = null;
+            currentCube.SetSelected(value);
         }
     }
 }

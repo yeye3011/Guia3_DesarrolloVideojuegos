@@ -9,8 +9,9 @@ public class CubeInteractable : MonoBehaviour
     [SerializeField] private float blinkSpeed = 5f;
 
     private bool isSelected = false;
-
     private float baseIntensity;
+
+    public bool IsSelected => isSelected;
 
     private void Awake()
     {
