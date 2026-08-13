@@ -1,9 +1,13 @@
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 public class PlayerController : MonoBehaviour
 {
     [Header("Movimiento")]
     [SerializeField] private float moveSpeed = 5f;
+
+    [Header("Input")]
+    [SerializeField] private InputActionReference moveAction;
 
     [Header("Cámara")]
     [SerializeField] private Transform cameraTransform;
@@ -11,13 +15,34 @@ public class PlayerController : MonoBehaviour
     [SerializeField] private float minLookX = -80f;
     [SerializeField] private float maxLookX = 80f;
 
-    [SerializeField]
-    private InteractionModeController modeController;
-
     [Header("Multitouch")]
     [SerializeField] private SplitScreenTouchZones touchZones;
 
     private float cameraRotationX = 0f;
+
+    // =====================================================
+    // INPUT ACTION
+    // =====================================================
+
+    private void OnEnable()
+    {
+        if (moveAction != null)
+        {
+            moveAction.action.Enable();
+        }
+    }
+
+    private void OnDisable()
+    {
+        if (moveAction != null)
+        {
+            moveAction.action.Disable();
+        }
+    }
+
+    // =====================================================
+    // UPDATE
+    // =====================================================
 
     private void Update()
     {
@@ -25,47 +50,71 @@ public class PlayerController : MonoBehaviour
         LookCamera();
     }
 
+    // =====================================================
+    // MOVIMIENTO
+    // =====================================================
+
     private void MovePlayer()
     {
-        Vector2 input = touchZones.MoveAxis;
+        if (moveAction == null)
+            return;
+
+        Vector2 input =
+            moveAction.action.ReadValue<Vector2>();
 
         Vector3 direction =
             transform.forward * input.y +
             transform.right * input.x;
 
-        direction = Vector3.ClampMagnitude(direction, 1f);
+        direction =
+            Vector3.ClampMagnitude(
+                direction,
+                1f
+            );
 
         transform.position +=
-            direction * moveSpeed * Time.deltaTime;
+            direction *
+            moveSpeed *
+            Time.deltaTime;
     }
+
+    // =====================================================
+    // CÁMARA
+    // =====================================================
 
     private void LookCamera()
     {
-        if (modeController.IsDragMode ||
-            modeController.IsSwipeMode)
+        if (touchZones == null ||
+            cameraTransform == null)
         {
             return;
         }
 
-        Vector2 look = touchZones.LookDelta;
+        Vector2 look =
+            touchZones.LookDelta;
 
         float lookX =
-            look.x * lookSensitivity;
+            look.x *
+            lookSensitivity;
 
         float lookY =
-            look.y * lookSensitivity;
+            look.y *
+            lookSensitivity;
 
+        // Rotación horizontal de la cápsula
         transform.Rotate(
             Vector3.up * lookX
         );
 
+        // Rotación vertical de la cámara
         cameraRotationX -= lookY;
 
-        cameraRotationX = Mathf.Clamp(
-            cameraRotationX,
-            minLookX,
-            maxLookX
-        );
+        cameraRotationX =
+            Mathf.Clamp(
+                cameraRotationX,
+                minLookX,
+                maxLookX
+            );
 
         cameraTransform.localRotation =
             Quaternion.Euler(

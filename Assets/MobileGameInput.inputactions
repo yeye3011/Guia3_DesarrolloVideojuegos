@@ -514,6 +514,17 @@
                 },
                 {
                     "name": "",
+                    "id": "931159df-a049-47ee-8293-31b1a7eebba6",
+                    "path": "<Touchscreen>/touch*/Press",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Grap",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
                     "id": "33f35a44-bf60-481b-819f-6ec0e10d30e1",
                     "path": "<Gamepad>/buttonSouth",
                     "interactions": "",

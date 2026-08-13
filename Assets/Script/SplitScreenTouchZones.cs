@@ -1,19 +1,32 @@
 using UnityEngine;
 using UnityEngine.InputSystem.EnhancedTouch;
-using Touch = UnityEngine.InputSystem.EnhancedTouch.Touch;
+
+using Touch =
+    UnityEngine.InputSystem.EnhancedTouch.Touch;
 
 public class SplitScreenTouchZones : MonoBehaviour
 {
-    public Vector2 MoveAxis { get; private set; }
-    public Vector2 LookDelta { get; private set; }
+    // =====================================================
+    // SALIDA DE CÁMARA
+    // =====================================================
 
-    [SerializeField] private float dragRadius = 120f;
+    public Vector2 LookDelta
+    {
+        get;
+        private set;
+    }
 
-    private Vector2 leftStart;
-    private Vector2 previousRight;
+    // =====================================================
+    // VARIABLES
+    // =====================================================
 
-    private int leftFinger = -1;
-    private int rightFinger = -1;
+    private Vector2 previousPosition;
+
+    private int cameraFinger = -1;
+
+    // =====================================================
+    // ENHANCED TOUCH
+    // =====================================================
 
     private void OnEnable()
     {
@@ -25,63 +38,72 @@ public class SplitScreenTouchZones : MonoBehaviour
         EnhancedTouchSupport.Disable();
     }
 
+    // =====================================================
+    // UPDATE
+    // =====================================================
+
     private void Update()
     {
         LookDelta = Vector2.zero;
 
         foreach (var touch in Touch.activeTouches)
         {
-            int id = touch.finger.index;
+            int fingerId =
+                touch.finger.index;
 
-            bool isLeftSide =
-                touch.screenPosition.x < Screen.width * 0.5f;
+            bool isRightSide =
+                touch.screenPosition.x >=
+                Screen.width * 0.5f;
 
-            if (touch.phase == UnityEngine.InputSystem.TouchPhase.Began)
-            {
-                if (isLeftSide && leftFinger < 0)
-                {
-                    leftFinger = id;
-                    leftStart = touch.screenPosition;
-                }
-                else if (!isLeftSide && rightFinger < 0)
-                {
-                    rightFinger = id;
-                    previousRight = touch.screenPosition;
-                }
-            }
-
-            if (id == leftFinger)
-            {
-                MoveAxis =
-                    Vector2.ClampMagnitude(
-                        (touch.screenPosition - leftStart)
-                        / dragRadius,
-                        1f
-                    );
-            }
-
-            if (id == rightFinger)
-            {
-                LookDelta =
-                    touch.screenPosition - previousRight;
-
-                previousRight = touch.screenPosition;
-            }
+            // ---------------------------------------------
+            // NUEVO DEDO PARA CÁMARA
+            // ---------------------------------------------
 
             if (touch.phase ==
-                UnityEngine.InputSystem.TouchPhase.Ended ||
-                touch.phase ==
-                UnityEngine.InputSystem.TouchPhase.Canceled)
+                UnityEngine.InputSystem.TouchPhase.Began)
             {
-                if (id == leftFinger)
+                if (isRightSide &&
+                    cameraFinger < 0)
                 {
-                    leftFinger = -1;
-                    MoveAxis = Vector2.zero;
-                }
+                    cameraFinger =
+                        fingerId;
 
-                if (id == rightFinger)
+                    previousPosition =
+                        touch.screenPosition;
+                }
+            }
+
+            // ---------------------------------------------
+            // MOVIMIENTO DE CÁMARA
+            // ---------------------------------------------
+
+            if (fingerId == cameraFinger)
+            {
+                if (touch.phase ==
+                    UnityEngine.InputSystem.TouchPhase.Moved)
                 {
-                    rightFinger = -1;
+                    LookDelta =
+                        touch.screenPosition -
+                        previousPosition;
+
+                    previousPosition =
+                        touch.screenPosition;
+                }
+            }
+
+            // ---------------------------------------------
+            // LIBERAR DEDO
+            // ---------------------------------------------
+
+            if (touch.phase ==
+                    UnityEngine.InputSystem.TouchPhase.Ended ||
+                touch.phase ==
+                    UnityEngine.InputSystem.TouchPhase.Canceled)
+            {
+                if (fingerId == cameraFinger)
+                {
+                    cameraFinger = -1;
+                    LookDelta = Vector2.zero;
                 }
             }
         }

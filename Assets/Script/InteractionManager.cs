@@ -1,4 +1,5 @@
 ﻿using UnityEngine;
+using UnityEngine.UI;
 
 public class InteractionManager : MonoBehaviour
 {
@@ -6,8 +7,12 @@ public class InteractionManager : MonoBehaviour
     [SerializeField] private Camera playerCamera;
     [SerializeField] private GameTimer gameTimer;
 
+    [Header("Botones de interacción")]
+    [SerializeField] private Button dragButton;
+    [SerializeField] private Button swipeButton;
+
     [Header("Configuración")]
-    [SerializeField] private float maxDistance = 5f;
+    [SerializeField] private float maxDistance = 20f;
     [SerializeField] private LayerMask interactableLayer;
 
     // =====================================================
@@ -34,44 +39,204 @@ public class InteractionManager : MonoBehaviour
     }
 
     // =====================================================
+    // START
+    // =====================================================
+
+    private void Start()
+    {
+        UpdateInteractionButtons();
+    }
+
+    // =====================================================
     // TAP
     // =====================================================
 
-    public void Tap()
+    public void Tap(Vector2 screenPosition)
     {
-        Debug.Log("TAP recibido por InteractionManager.");
-
-        // -------------------------------------------------
-        // INICIAR CRONÓMETRO
-        // -------------------------------------------------
+        Debug.Log(
+            "TAP recibido en: " + screenPosition
+        );
 
         StartTimerIfNeeded();
 
-        // -------------------------------------------------
-        // TAP 1 → SELECCIONAR
-        // -------------------------------------------------
-
-        if (selectedCube == null)
+        if (playerCamera == null)
         {
-            TrySelect();
+            Debug.LogError(
+                "Player Camera no está asignada."
+            );
+
             return;
         }
 
         // -------------------------------------------------
-        // TAP 2 → AGARRAR
+        // RAYO DESDE EL LUGAR TOCADO
         // -------------------------------------------------
 
+        Ray ray =
+            playerCamera.ScreenPointToRay(
+                screenPosition
+            );
+
+        // -------------------------------------------------
+        // RAYCAST
+        // -------------------------------------------------
+
+        if (!Physics.Raycast(
+            ray,
+            out RaycastHit hit,
+            maxDistance,
+            interactableLayer
+        ))
+        {
+            Debug.Log(
+                "El TAP no tocó un cerdito interactuable."
+            );
+
+            return;
+        }
+
+        // -------------------------------------------------
+        // BUSCAR CUBE INTERACTABLE
+        // -------------------------------------------------
+
+        CubeInteractable cube =
+            hit.collider.GetComponent<CubeInteractable>();
+
+        if (cube == null)
+        {
+            cube =
+                hit.collider.GetComponentInParent<CubeInteractable>();
+        }
+
+        if (cube == null)
+        {
+            Debug.Log(
+                "El objeto tocado no tiene CubeInteractable."
+            );
+
+            return;
+        }
+
+        // -------------------------------------------------
+        // SI TOCAMOS EL MISMO CERDITO AGARRADO → SOLTAR
+        // -------------------------------------------------
+
+        if (heldCube == cube)
+        {
+            ReleaseCube();
+            return;
+        }
+
+        // -------------------------------------------------
+        // SI HABÍA OTRO CERDITO → SOLTARLO
+        // -------------------------------------------------
+
+        if (heldCube != null)
+        {
+            ReleaseCube();
+        }
+
+        // -------------------------------------------------
+        // SELECCIONAR + AGARRAR
+        // -------------------------------------------------
+
+        SelectAndGrab(cube);
+    }
+
+    // =====================================================
+    // SELECCIONAR + AGARRAR
+    // =====================================================
+
+    private void SelectAndGrab(
+        CubeInteractable cube)
+    {
+        if (cube == null)
+            return;
+
+        // Apagar selección anterior
+        if (selectedCube != null &&
+            selectedCube != cube)
+        {
+            selectedCube.SetSelected(false);
+        }
+
+        selectedCube = cube;
+        heldCube = cube;
+
+        // Encender luz/parpadeo
+        selectedCube.SetSelected(true);
+
+        // Habilitar Drag y Swipe
+        UpdateInteractionButtons();
+
+        Debug.Log(
+            "Cerdito seleccionado y agarrado: " +
+            selectedCube.name
+        );
+    }
+
+    // =====================================================
+    // SOLTAR
+    // =====================================================
+
+    public void ReleaseCube()
+    {
         if (heldCube == null)
         {
-            TryGrab();
+            Debug.Log(
+                "No hay ningún cerdito agarrado."
+            );
+
             return;
         }
 
-        // -------------------------------------------------
-        // TAP 3 → SOLTAR
-        // -------------------------------------------------
+        CubeInteractable cubeToRelease =
+            heldCube;
 
-        TryPlace();
+        // Reactivar física
+        Rigidbody body =
+            cubeToRelease.GetComponent<Rigidbody>();
+
+        if (body != null)
+        {
+            body.isKinematic = false;
+        }
+
+        // Apagar selección
+        cubeToRelease.SetSelected(false);
+
+        heldCube = null;
+        selectedCube = null;
+
+        // Deshabilitar Drag y Swipe
+        UpdateInteractionButtons();
+
+        Debug.Log(
+            "Cerdito soltado: " +
+            cubeToRelease.name
+        );
+    }
+
+    // =====================================================
+    // BOTONES DRAG / SWIPE
+    // =====================================================
+
+    private void UpdateInteractionButtons()
+    {
+        bool hasCube =
+            heldCube != null;
+
+        if (dragButton != null)
+        {
+            dragButton.interactable =
+                hasCube;
+        }
+
+        if (swipeButton != null)
+        {
+            swipeButton.interactable =
+                hasCube;
+        }
     }
 
     // =====================================================
@@ -86,7 +251,7 @@ public class InteractionManager : MonoBehaviour
         if (gameTimer == null)
         {
             Debug.LogWarning(
-                "GameTimer no está asignado en InteractionManager."
+                "GameTimer no está asignado."
             );
 
             return;
@@ -97,181 +262,7 @@ public class InteractionManager : MonoBehaviour
         timerStarted = true;
 
         Debug.Log(
-            "Cronómetro iniciado con el primer input."
-        );
-    }
-
-    // =====================================================
-    // SELECCIONAR CUBO
-    // =====================================================
-
-    public void TrySelect()
-    {
-        if (playerCamera == null)
-        {
-            Debug.LogError(
-                "Player Camera no está asignada."
-            );
-
-            return;
-        }
-
-        // -------------------------------------------------
-        // RAYO DESDE EL CENTRO DE LA CÁMARA
-        // -------------------------------------------------
-
-        Ray ray =
-            playerCamera.ViewportPointToRay(
-                new Vector3(
-                    0.5f,
-                    0.5f,
-                    0f
-                )
-            );
-
-        // -------------------------------------------------
-        // DETECTAR CUBO
-        // -------------------------------------------------
-
-        if (Physics.Raycast(
-            ray,
-            out RaycastHit hit,
-            maxDistance,
-            interactableLayer
-        ))
-        {
-            CubeInteractable cube =
-                hit.collider.GetComponent<CubeInteractable>();
-
-            if (cube == null)
-            {
-                cube =
-                    hit.collider.GetComponentInParent<
-                        CubeInteractable
-                    >();
-            }
-
-            if (cube == null)
-            {
-                Debug.Log(
-                    "El objeto detectado no es un cubo interactuable."
-                );
-
-                return;
-            }
-
-            // -------------------------------------------------
-            // QUITAR SELECCIÓN DEL CUBO ANTERIOR
-            // -------------------------------------------------
-
-            if (selectedCube != null &&
-                selectedCube != cube)
-            {
-                selectedCube.SetSelected(false);
-            }
-
-            // -------------------------------------------------
-            // SELECCIONAR NUEVO CUBO
-            // -------------------------------------------------
-
-            selectedCube = cube;
-
-            selectedCube.SetSelected(true);
-
-            Debug.Log(
-                "Cubo seleccionado: " +
-                selectedCube.name
-            );
-        }
-        else
-        {
-            Debug.Log(
-                "No se encontró ningún cubo."
-            );
-        }
-    }
-
-    // =====================================================
-    // AGARRAR CUBO
-    // =====================================================
-
-    public void TryGrab()
-    {
-        if (selectedCube == null)
-        {
-            Debug.Log(
-                "No hay cubo seleccionado."
-            );
-
-            return;
-        }
-
-        if (heldCube != null)
-        {
-            Debug.Log(
-                "Ya hay un cubo agarrado."
-            );
-
-            return;
-        }
-
-        heldCube = selectedCube;
-
-        Debug.Log(
-            "Cubo agarrado: " +
-            heldCube.name
-        );
-    }
-
-    // =====================================================
-    // SOLTAR CUBO
-    // =====================================================
-
-    public void TryPlace()
-    {
-        if (heldCube == null)
-        {
-            Debug.Log(
-                "No hay ningún cubo agarrado."
-            );
-
-            return;
-        }
-
-        Debug.Log(
-            "Cubo soltado: " +
-            heldCube.name
-        );
-
-        // -------------------------------------------------
-        // VOLVER A ACTIVAR LA FÍSICA
-        // -------------------------------------------------
-
-        Rigidbody body =
-            heldCube.GetComponent<Rigidbody>();
-
-        if (body != null)
-        {
-            body.isKinematic = false;
-        }
-
-        // -------------------------------------------------
-        // DEJAR DE TENERLO AGARRADO
-        // -------------------------------------------------
-
-        heldCube = null;
-
-        // -------------------------------------------------
-        // MANTENER SELECCIÓN
-        // -------------------------------------------------
-
-        if (selectedCube != null)
-        {
-            selectedCube.SetSelected(true);
-        }
-
-        Debug.Log(
-            "El cubo quedó libre."
+            "Cronómetro iniciado."
         );
     }
 
@@ -287,6 +278,9 @@ public class InteractionManager : MonoBehaviour
         }
 
         selectedCube = null;
+        heldCube = null;
+
+        UpdateInteractionButtons();
 
         Debug.Log(
             "Selección eliminada."
@@ -294,7 +288,7 @@ public class InteractionManager : MonoBehaviour
     }
 
     // =====================================================
-    // OBTENER CUBO AGARRADO
+    // OBTENER CERDITO AGARRADO
     // =====================================================
 
     public CubeInteractable GetHeldCube()
@@ -317,9 +311,14 @@ public class InteractionManager : MonoBehaviour
             {
                 body.isKinematic = false;
             }
+
+            heldCube.SetSelected(false);
         }
 
         heldCube = null;
+        selectedCube = null;
+
+        UpdateInteractionButtons();
 
         Debug.Log(
             "Agarre cancelado."
