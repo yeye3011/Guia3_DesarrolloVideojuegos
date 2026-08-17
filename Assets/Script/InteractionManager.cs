@@ -1,19 +1,26 @@
 ﻿using UnityEngine;
-using UnityEngine.UI;
 
 public class InteractionManager : MonoBehaviour
 {
+    // =====================================================
+    // REFERENCIAS
+    // =====================================================
+
     [Header("Referencias")]
     [SerializeField] private Camera playerCamera;
     [SerializeField] private GameTimer gameTimer;
+    [SerializeField] private InteractionModeController modeController;
 
-    [Header("Botones de interacción")]
-    [SerializeField] private Button dragButton;
-    [SerializeField] private Button swipeButton;
+    // =====================================================
+    // CONFIGURACIÓN
+    // =====================================================
 
     [Header("Configuración")]
     [SerializeField] private float maxDistance = 20f;
     [SerializeField] private LayerMask interactableLayer;
+
+    [Header("Doble Tap")]
+    [SerializeField] private float doubleTapTime = 0.35f;
 
     // =====================================================
     // VARIABLES
@@ -23,6 +30,9 @@ public class InteractionManager : MonoBehaviour
     private CubeInteractable heldCube;
 
     private bool timerStarted = false;
+
+    private float lastReleaseTapTime = -1f;
+    private int releaseTapCount = 0;
 
     // =====================================================
     // PROPIEDADES PÚBLICAS
@@ -44,7 +54,7 @@ public class InteractionManager : MonoBehaviour
 
     private void Start()
     {
-        UpdateInteractionButtons();
+        UpdateModeButtons();
     }
 
     // =====================================================
@@ -59,6 +69,10 @@ public class InteractionManager : MonoBehaviour
 
         StartTimerIfNeeded();
 
+        // -------------------------------------------------
+        // VERIFICAR CÁMARA
+        // -------------------------------------------------
+
         if (playerCamera == null)
         {
             Debug.LogError(
@@ -69,7 +83,7 @@ public class InteractionManager : MonoBehaviour
         }
 
         // -------------------------------------------------
-        // RAYO DESDE EL LUGAR TOCADO
+        // RAYO DESDE LA POSICIÓN TOCADA
         // -------------------------------------------------
 
         Ray ray =
@@ -105,7 +119,9 @@ public class InteractionManager : MonoBehaviour
         if (cube == null)
         {
             cube =
-                hit.collider.GetComponentInParent<CubeInteractable>();
+                hit.collider.GetComponentInParent<
+                    CubeInteractable
+                >();
         }
 
         if (cube == null)
@@ -118,18 +134,29 @@ public class InteractionManager : MonoBehaviour
         }
 
         // -------------------------------------------------
-        // SI TOCAMOS EL MISMO CERDITO AGARRADO → SOLTAR
+        // MISMO CERDITO AGARRADO
         // -------------------------------------------------
+
+        /*
+         * Si tocamos el mismo cerdito que ya está
+         * seleccionado/agarrado, necesitamos doble tap
+         * para soltarlo.
+         */
 
         if (heldCube == cube)
         {
-            ReleaseCube();
+            HandleReleaseDoubleTap();
             return;
         }
 
         // -------------------------------------------------
-        // SI HABÍA OTRO CERDITO → SOLTARLO
+        // OTRO CERDITO
         // -------------------------------------------------
+
+        /*
+         * Si había otro cerdito seleccionado,
+         * primero lo soltamos.
+         */
 
         if (heldCube != null)
         {
@@ -137,7 +164,7 @@ public class InteractionManager : MonoBehaviour
         }
 
         // -------------------------------------------------
-        // SELECCIONAR + AGARRAR
+        // SELECCIONAR NUEVO CERDITO
         // -------------------------------------------------
 
         SelectAndGrab(cube);
@@ -153,21 +180,36 @@ public class InteractionManager : MonoBehaviour
         if (cube == null)
             return;
 
-        // Apagar selección anterior
+        ResetDoubleTap();
+
+        // -------------------------------------------------
+        // QUITAR SELECCIÓN ANTERIOR
+        // -------------------------------------------------
+
         if (selectedCube != null &&
             selectedCube != cube)
         {
             selectedCube.SetSelected(false);
         }
 
+        // -------------------------------------------------
+        // GUARDAR CERDITO
+        // -------------------------------------------------
+
         selectedCube = cube;
         heldCube = cube;
 
-        // Encender luz/parpadeo
+        // -------------------------------------------------
+        // FEEDBACK VISUAL DEL CERDITO
+        // -------------------------------------------------
+
         selectedCube.SetSelected(true);
 
-        // Habilitar Drag y Swipe
-        UpdateInteractionButtons();
+        // -------------------------------------------------
+        // ACTUALIZAR BOTONES
+        // -------------------------------------------------
+
+        UpdateModeButtons();
 
         Debug.Log(
             "Cerdito seleccionado y agarrado: " +
@@ -176,7 +218,66 @@ public class InteractionManager : MonoBehaviour
     }
 
     // =====================================================
-    // SOLTAR
+    // DOBLE TAP PARA SOLTAR
+    // =====================================================
+
+    private void HandleReleaseDoubleTap()
+    {
+        float currentTime =
+            Time.unscaledTime;
+
+        // -------------------------------------------------
+        // PRIMER TAP
+        // -------------------------------------------------
+
+        if (releaseTapCount == 0 ||
+            currentTime - lastReleaseTapTime >
+            doubleTapTime)
+        {
+            releaseTapCount = 1;
+
+            lastReleaseTapTime =
+                currentTime;
+
+            Debug.Log(
+                "Primer tap para soltar. " +
+                "Haz otro tap rápidamente."
+            );
+
+            return;
+        }
+
+        // -------------------------------------------------
+        // SEGUNDO TAP
+        // -------------------------------------------------
+
+        releaseTapCount++;
+
+        if (releaseTapCount >= 2)
+        {
+            Debug.Log(
+                "DOBLE TAP detectado. " +
+                "Soltando cerdito."
+            );
+
+            ResetDoubleTap();
+
+            ReleaseCube();
+        }
+    }
+
+    // =====================================================
+    // REINICIAR DOBLE TAP
+    // =====================================================
+
+    private void ResetDoubleTap()
+    {
+        releaseTapCount = 0;
+        lastReleaseTapTime = -1f;
+    }
+
+    // =====================================================
+    // SOLTAR CERDITO
     // =====================================================
 
     public void ReleaseCube()
@@ -193,7 +294,10 @@ public class InteractionManager : MonoBehaviour
         CubeInteractable cubeToRelease =
             heldCube;
 
-        // Reactivar física
+        // -------------------------------------------------
+        // REACTIVAR FÍSICA
+        // -------------------------------------------------
+
         Rigidbody body =
             cubeToRelease.GetComponent<Rigidbody>();
 
@@ -202,14 +306,29 @@ public class InteractionManager : MonoBehaviour
             body.isKinematic = false;
         }
 
-        // Apagar selección
+        // -------------------------------------------------
+        // QUITAR SELECCIÓN
+        // -------------------------------------------------
+
         cubeToRelease.SetSelected(false);
+
+        // -------------------------------------------------
+        // LIMPIAR REFERENCIAS
+        // -------------------------------------------------
 
         heldCube = null;
         selectedCube = null;
 
-        // Deshabilitar Drag y Swipe
-        UpdateInteractionButtons();
+        ResetDoubleTap();
+
+        // Si Drag o Swipe estaban seleccionados,
+        // también se cancelan.
+        if (modeController != null)
+        {
+            modeController.DeactivateMode();
+        }
+
+        UpdateModeButtons();
 
         Debug.Log(
             "Cerdito soltado: " +
@@ -218,24 +337,14 @@ public class InteractionManager : MonoBehaviour
     }
 
     // =====================================================
-    // BOTONES DRAG / SWIPE
+    // ACTUALIZAR BOTONES DRAG / SWIPE
     // =====================================================
 
-    private void UpdateInteractionButtons()
+    private void UpdateModeButtons()
     {
-        bool hasCube =
-            heldCube != null;
-
-        if (dragButton != null)
+        if (modeController != null)
         {
-            dragButton.interactable =
-                hasCube;
-        }
-
-        if (swipeButton != null)
-        {
-            swipeButton.interactable =
-                hasCube;
+            modeController.UpdateButtonStates();
         }
     }
 
@@ -251,7 +360,7 @@ public class InteractionManager : MonoBehaviour
         if (gameTimer == null)
         {
             Debug.LogWarning(
-                "GameTimer no está asignado."
+                "GameTimer no está asignado en InteractionManager."
             );
 
             return;
@@ -277,10 +386,29 @@ public class InteractionManager : MonoBehaviour
             selectedCube.SetSelected(false);
         }
 
+        // Reactivar física por seguridad.
+        if (heldCube != null)
+        {
+            Rigidbody body =
+                heldCube.GetComponent<Rigidbody>();
+
+            if (body != null)
+            {
+                body.isKinematic = false;
+            }
+        }
+
         selectedCube = null;
         heldCube = null;
 
-        UpdateInteractionButtons();
+        ResetDoubleTap();
+
+        if (modeController != null)
+        {
+            modeController.DeactivateMode();
+        }
+
+        UpdateModeButtons();
 
         Debug.Log(
             "Selección eliminada."
@@ -318,7 +446,14 @@ public class InteractionManager : MonoBehaviour
         heldCube = null;
         selectedCube = null;
 
-        UpdateInteractionButtons();
+        ResetDoubleTap();
+
+        if (modeController != null)
+        {
+            modeController.DeactivateMode();
+        }
+
+        UpdateModeButtons();
 
         Debug.Log(
             "Agarre cancelado."

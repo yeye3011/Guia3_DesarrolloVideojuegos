@@ -1,71 +1,174 @@
+using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
+using TMPro;
 
 public class StackManager : MonoBehaviour
 {
-    [Header("Cubos")]
-    [SerializeField] private CubeInteractable[] cubes;
+    // =====================================================
+    // CONFIGURACIÓN
+    // =====================================================
 
-    [Header("Zona de apilamiento")]
-    [SerializeField] private Transform stackTarget;
+    [Header("Configuración")]
 
-    [SerializeField] private float positionTolerance = 0.25f;
+    [SerializeField]
+    private int requiredPigs = 4;
 
-    [Header("Altura entre cubos")]
-    [SerializeField] private float verticalSpacing = 1f;
+    [SerializeField]
+    private float horizontalToleranceX = 0.8f;
 
-    [SerializeField] private float verticalTolerance = 0.25f;
+    [SerializeField]
+    private float horizontalToleranceZ = 0.8f;
+
+    [SerializeField]
+    private float minimumVerticalDifference = 0.3f;
+
+    // =====================================================
+    // VICTORIA
+    // =====================================================
 
     [Header("Victoria")]
-    [SerializeField] private GameTimer gameTimer;
 
-    [SerializeField] private GameObject victoryPanel;
+    [SerializeField]
+    private GameTimer gameTimer;
+
+    [SerializeField]
+    private GameObject winPanel;
+
+    [SerializeField]
+    private TMP_Text finalTimeText;
+
+    [Tooltip("Segundos que espera antes de mostrar el panel de victoria.")]
+    [SerializeField]
+    private float winPanelDelay = 3f;
+
+    // =====================================================
+    // CERDITOS EN ZONA B
+    // =====================================================
+
+    private readonly List<CubeInteractable> pigsInZone =
+        new List<CubeInteractable>();
 
     private bool gameWon = false;
 
+    // =====================================================
+    // START
+    // =====================================================
+
     private void Start()
     {
-        // Ocultar el panel de victoria al comenzar
-        if (victoryPanel != null)
+        // El panel de victoria empieza oculto.
+        if (winPanel != null)
         {
-            victoryPanel.SetActive(false);
+            winPanel.SetActive(false);
         }
     }
+
+    // =====================================================
+    // ENTRAR A ZONA B
+    // =====================================================
+
+    private void OnTriggerEnter(Collider other)
+    {
+        CubeInteractable pig =
+            other.GetComponent<CubeInteractable>();
+
+        if (pig == null)
+        {
+            pig =
+                other.GetComponentInParent<
+                    CubeInteractable
+                >();
+        }
+
+        if (pig == null)
+            return;
+
+        if (!pigsInZone.Contains(pig))
+        {
+            pigsInZone.Add(pig);
+
+            Debug.Log(
+                "Cerdito entró en Zona B: " +
+                pig.name +
+                ". Total: " +
+                pigsInZone.Count
+            );
+        }
+
+        CheckWinCondition();
+    }
+
+    // =====================================================
+    // SALIR DE ZONA B
+    // =====================================================
+
+    private void OnTriggerExit(Collider other)
+    {
+        CubeInteractable pig =
+            other.GetComponent<CubeInteractable>();
+
+        if (pig == null)
+        {
+            pig =
+                other.GetComponentInParent<
+                    CubeInteractable
+                >();
+        }
+
+        if (pig == null)
+            return;
+
+        if (pigsInZone.Contains(pig))
+        {
+            pigsInZone.Remove(pig);
+
+            Debug.Log(
+                "Cerdito salió de Zona B: " +
+                pig.name +
+                ". Total: " +
+                pigsInZone.Count
+            );
+        }
+    }
+
+    // =====================================================
+    // UPDATE
+    // =====================================================
 
     private void Update()
     {
         if (gameWon)
             return;
 
-        CheckStack();
+        if (pigsInZone.Count >= requiredPigs)
+        {
+            CheckWinCondition();
+        }
     }
 
-    private void CheckStack()
+    // =====================================================
+    // COMPROBAR VICTORIA
+    // =====================================================
+
+    private void CheckWinCondition()
     {
-        // -------------------------------------------------
-        // VERIFICAR QUE EXISTAN LOS 4 CUBOS
-        // -------------------------------------------------
+        if (gameWon)
+            return;
 
-        if (cubes == null || cubes.Length != 4)
+        if (pigsInZone.Count < requiredPigs)
             return;
 
         // -------------------------------------------------
-        // VERIFICAR ZONA DE APILAMIENTO
+        // ORDENAR POR ALTURA
         // -------------------------------------------------
 
-        if (stackTarget == null)
-            return;
+        List<CubeInteractable> orderedPigs =
+            new List<CubeInteractable>(
+                pigsInZone
+            );
 
-        // -------------------------------------------------
-        // ORDENAR LOS CUBOS POR ALTURA
-        // -------------------------------------------------
-
-        CubeInteractable[] sortedCubes =
-            new CubeInteractable[cubes.Length];
-
-        cubes.CopyTo(sortedCubes, 0);
-
-        System.Array.Sort(
-            sortedCubes,
+        orderedPigs.Sort(
             (a, b) =>
                 a.transform.position.y.CompareTo(
                     b.transform.position.y
@@ -73,88 +176,155 @@ public class StackManager : MonoBehaviour
         );
 
         // -------------------------------------------------
-        // COMPROBAR X Y Z
+        // CERDITO MÁS BAJO COMO REFERENCIA
         // -------------------------------------------------
 
-        for (int i = 0; i < sortedCubes.Length; i++)
+        Vector3 basePosition =
+            orderedPigs[0]
+                .transform.position;
+
+        // =================================================
+        // COMPROBAR X / Z
+        // =================================================
+
+        foreach (
+            CubeInteractable pig
+            in orderedPigs)
         {
             Vector3 position =
-                sortedCubes[i].transform.position;
+                pig.transform.position;
 
-            // X
-            if (Mathf.Abs(
-                position.x -
-                stackTarget.position.x
-            ) > positionTolerance)
-            {
-                return;
-            }
+            float differenceX =
+                Mathf.Abs(
+                    position.x -
+                    basePosition.x
+                );
 
-            // Z
-            if (Mathf.Abs(
-                position.z -
-                stackTarget.position.z
-            ) > positionTolerance)
+            float differenceZ =
+                Mathf.Abs(
+                    position.z -
+                    basePosition.z
+                );
+
+            if (differenceX >
+                    horizontalToleranceX ||
+                differenceZ >
+                    horizontalToleranceZ)
             {
                 return;
             }
         }
 
-        // -------------------------------------------------
-        // COMPROBAR ALTURA
-        // -------------------------------------------------
+        // =================================================
+        // COMPROBAR ALTURAS
+        // =================================================
 
-        float baseY =
-            sortedCubes[0].transform.position.y;
-
-        for (int i = 1; i < sortedCubes.Length; i++)
+        for (int i = 1;
+             i < orderedPigs.Count;
+             i++)
         {
-            float expectedY =
-                baseY +
-                verticalSpacing * i;
+            float previousY =
+                orderedPigs[i - 1]
+                    .transform.position.y;
 
             float currentY =
-                sortedCubes[i].transform.position.y;
+                orderedPigs[i]
+                    .transform.position.y;
 
-            if (Mathf.Abs(
-                currentY - expectedY
-            ) > verticalTolerance)
+            float verticalDifference =
+                currentY -
+                previousY;
+
+            if (verticalDifference <
+                minimumVerticalDifference)
             {
                 return;
             }
         }
 
-        // -------------------------------------------------
-        // LOS 4 CUBOS ESTÁN CORRECTAMENTE APILADOS
-        // -------------------------------------------------
+        // =================================================
+        // VICTORIA
+        // =================================================
 
-        WinGame();
+        Win();
     }
 
-    private void WinGame()
+    // =====================================================
+    // GANAR
+    // =====================================================
+
+    private void Win()
     {
+        if (gameWon)
+            return;
+
         gameWon = true;
 
+        Debug.Log(
+            "¡VICTORIA! Los 4 cerditos están apilados."
+        );
+
         // -------------------------------------------------
-        // DETENER CRONÓMETRO
+        // DETENER CRONÓMETRO INMEDIATAMENTE
         // -------------------------------------------------
 
         if (gameTimer != null)
         {
             gameTimer.StopTimer();
+
+            if (finalTimeText != null)
+            {
+                finalTimeText.text =
+                    gameTimer.FormatTime(
+                        gameTimer.ElapsedTime
+                    );
+            }
         }
-
-        // -------------------------------------------------
-        // MOSTRAR IMAGEN / PANEL DE VICTORIA
-        // -------------------------------------------------
-
-        if (victoryPanel != null)
+        else
         {
-            victoryPanel.SetActive(true);
+            Debug.LogWarning(
+                "GameTimer no está asignado en StackManager."
+            );
         }
 
-        Debug.Log(
-            "¡GANASTE! Los 4 cubos están correctamente apilados."
+        // -------------------------------------------------
+        // ESPERAR ANTES DE MOSTRAR PANEL
+        // -------------------------------------------------
+
+        StartCoroutine(
+            ShowWinPanelAfterDelay()
         );
+    }
+
+    // =====================================================
+    // MOSTRAR PANEL DESPUÉS DE UNOS SEGUNDOS
+    // =====================================================
+
+    private IEnumerator ShowWinPanelAfterDelay()
+    {
+        Debug.Log(
+            "Esperando " +
+            winPanelDelay +
+            " segundos para mostrar WinPanel."
+        );
+
+        yield return new WaitForSeconds(
+            winPanelDelay
+        );
+
+        if (winPanel != null)
+        {
+            winPanel.SetActive(true);
+
+            Debug.Log(
+                "WinPanel mostrado."
+            );
+        }
+        else
+        {
+            Debug.LogWarning(
+                "WinPanel no está asignado."
+            );
+        }
     }
 }

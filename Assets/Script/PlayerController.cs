@@ -3,22 +3,74 @@ using UnityEngine.InputSystem;
 
 public class PlayerController : MonoBehaviour
 {
+    // =====================================================
+    // REFERENCIAS
+    // =====================================================
+
+    [Header("Referencias")]
+    [SerializeField] private CharacterController characterController;
+
+    // =====================================================
+    // MOVIMIENTO
+    // =====================================================
+
     [Header("Movimiento")]
     [SerializeField] private float moveSpeed = 5f;
+
+    // =====================================================
+    // INPUT
+    // =====================================================
 
     [Header("Input")]
     [SerializeField] private InputActionReference moveAction;
 
+    // =====================================================
+    // CÁMARA
+    // =====================================================
+
     [Header("Cámara")]
     [SerializeField] private Transform cameraTransform;
+
     [SerializeField] private float lookSensitivity = 0.1f;
+
     [SerializeField] private float minLookX = -80f;
+
     [SerializeField] private float maxLookX = 80f;
+
+    // =====================================================
+    // MULTITOUCH
+    // =====================================================
 
     [Header("Multitouch")]
     [SerializeField] private SplitScreenTouchZones touchZones;
 
+    // =====================================================
+    // VARIABLES
+    // =====================================================
+
     private float cameraRotationX = 0f;
+
+    // =====================================================
+    // AWAKE
+    // =====================================================
+
+    private void Awake()
+    {
+        // Si olvidamos asignarlo manualmente,
+        // intentamos encontrarlo automáticamente.
+        if (characterController == null)
+        {
+            characterController =
+                GetComponent<CharacterController>();
+        }
+
+        if (characterController == null)
+        {
+            Debug.LogError(
+                "Player necesita un Character Controller."
+            );
+        }
+    }
 
     // =====================================================
     // INPUT ACTION
@@ -56,11 +108,22 @@ public class PlayerController : MonoBehaviour
 
     private void MovePlayer()
     {
-        if (moveAction == null)
+        if (moveAction == null ||
+            characterController == null)
+        {
             return;
+        }
+
+        // -------------------------------------------------
+        // LEER JOYSTICK
+        // -------------------------------------------------
 
         Vector2 input =
             moveAction.action.ReadValue<Vector2>();
+
+        // -------------------------------------------------
+        // CALCULAR DIRECCIÓN
+        // -------------------------------------------------
 
         Vector3 direction =
             transform.forward * input.y +
@@ -72,10 +135,27 @@ public class PlayerController : MonoBehaviour
                 1f
             );
 
-        transform.position +=
+        // -------------------------------------------------
+        // MOVER CON CHARACTER CONTROLLER
+        // -------------------------------------------------
+
+        /*
+         * Antes utilizábamos:
+         *
+         * transform.position += ...
+         *
+         * Ahora CharacterController.Move se encarga
+         * de respetar las colisiones con los muros.
+         */
+
+        Vector3 movement =
             direction *
             moveSpeed *
             Time.deltaTime;
+
+        characterController.Move(
+            movement
+        );
     }
 
     // =====================================================
@@ -101,13 +181,20 @@ public class PlayerController : MonoBehaviour
             look.y *
             lookSensitivity;
 
-        // Rotación horizontal de la cápsula
+        // -------------------------------------------------
+        // ROTACIÓN HORIZONTAL DEL PLAYER
+        // -------------------------------------------------
+
         transform.Rotate(
             Vector3.up * lookX
         );
 
-        // Rotación vertical de la cámara
-        cameraRotationX -= lookY;
+        // -------------------------------------------------
+        // ROTACIÓN VERTICAL DE LA CÁMARA
+        // -------------------------------------------------
+
+        cameraRotationX -=
+            lookY;
 
         cameraRotationX =
             Mathf.Clamp(

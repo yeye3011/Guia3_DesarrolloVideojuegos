@@ -7,7 +7,7 @@ using Touch =
 public class SplitScreenTouchZones : MonoBehaviour
 {
     // =====================================================
-    // SALIDA DE CÁMARA
+    // SALIDA PARA LA CÁMARA
     // =====================================================
 
     public Vector2 LookDelta
@@ -15,6 +15,28 @@ public class SplitScreenTouchZones : MonoBehaviour
         get;
         private set;
     }
+
+    // =====================================================
+    // REFERENCIAS
+    // =====================================================
+
+    [Header("Interacción")]
+    [SerializeField]
+    private InteractionModeController modeController;
+
+    // =====================================================
+    // CONFIGURACIÓN
+    // =====================================================
+
+    [Header("Zona de cámara")]
+
+    [Tooltip(
+        "Porcentaje de pantalla desde donde comienza " +
+        "la zona de cámara."
+    )]
+    [Range(0.5f, 0.9f)]
+    [SerializeField]
+    private float cameraZoneStart = 0.5f;
 
     // =====================================================
     // VARIABLES
@@ -25,7 +47,7 @@ public class SplitScreenTouchZones : MonoBehaviour
     private int cameraFinger = -1;
 
     // =====================================================
-    // ENHANCED TOUCH
+    // ENABLE / DISABLE
     // =====================================================
 
     private void OnEnable()
@@ -36,6 +58,11 @@ public class SplitScreenTouchZones : MonoBehaviour
     private void OnDisable()
     {
         EnhancedTouchSupport.Disable();
+
+        cameraFinger = -1;
+
+        LookDelta =
+            Vector2.zero;
     }
 
     // =====================================================
@@ -44,67 +71,177 @@ public class SplitScreenTouchZones : MonoBehaviour
 
     private void Update()
     {
-        LookDelta = Vector2.zero;
+        // Cada frame comenzamos sin movimiento.
+        LookDelta =
+            Vector2.zero;
 
         foreach (var touch in Touch.activeTouches)
         {
             int fingerId =
                 touch.finger.index;
 
-            bool isRightSide =
-                touch.screenPosition.x >=
-                Screen.width * 0.5f;
+            // =================================================
+            // 1. IGNORAR DEDO DE INTERACCIÓN
+            // =================================================
 
-            // ---------------------------------------------
-            // NUEVO DEDO PARA CÁMARA
-            // ---------------------------------------------
+            /*
+             * Si CubeDragController o CubeSwipeController
+             * reservó este dedo, este script NO puede
+             * utilizarlo para mover la cámara.
+             */
+
+            if (modeController != null &&
+                modeController.IsInteractionFinger(
+                    fingerId))
+            {
+                // Si este dedo antes pertenecía
+                // a la cámara, lo liberamos.
+                if (cameraFinger ==
+                    fingerId)
+                {
+                    cameraFinger =
+                        -1;
+
+                    LookDelta =
+                        Vector2.zero;
+                }
+
+                continue;
+            }
+
+            // =================================================
+            // 2. COMPROBAR ZONA DE CÁMARA
+            // =================================================
+
+            bool isCameraZone =
+                touch.screenPosition.x >=
+                Screen.width *
+                cameraZoneStart;
+
+            // =================================================
+            // 3. ASIGNAR DEDO A CÁMARA
+            // =================================================
 
             if (touch.phase ==
                 UnityEngine.InputSystem.TouchPhase.Began)
             {
-                if (isRightSide &&
-                    cameraFinger < 0)
+                /*
+                 * Cuando Drag o Swipe está activo,
+                 * estamos esperando que uno de los dedos
+                 * sea utilizado para esa interacción.
+
+                 * Por seguridad, la cámara NO toma nuevos
+                 * dedos mientras esperamos el gesto.
+                 */
+
+                bool interactionModeActive =
+                    modeController != null &&
+                    (
+                        modeController.IsDragMode ||
+                        modeController.IsSwipeMode
+                    );
+
+                if (isCameraZone &&
+                    cameraFinger < 0 &&
+                    !interactionModeActive)
                 {
                     cameraFinger =
                         fingerId;
 
                     previousPosition =
                         touch.screenPosition;
+
+                    continue;
                 }
             }
 
-            // ---------------------------------------------
-            // MOVIMIENTO DE CÁMARA
-            // ---------------------------------------------
+            // =================================================
+            // 4. ACTUALIZAR CÁMARA
+            // =================================================
 
-            if (fingerId == cameraFinger)
+            if (fingerId ==
+                cameraFinger)
             {
+                // ---------------------------------------------
+                // MOVIMIENTO
+                // ---------------------------------------------
+
                 if (touch.phase ==
                     UnityEngine.InputSystem.TouchPhase.Moved)
                 {
+                    Vector2 currentPosition =
+                        touch.screenPosition;
+
                     LookDelta =
-                        touch.screenPosition -
+                        currentPosition -
                         previousPosition;
 
                     previousPosition =
-                        touch.screenPosition;
+                        currentPosition;
+                }
+
+                // ---------------------------------------------
+                // DEDO QUIETO
+                // ---------------------------------------------
+
+                if (touch.phase ==
+                    UnityEngine.InputSystem.TouchPhase.Stationary)
+                {
+                    LookDelta =
+                        Vector2.zero;
+                }
+
+                // ---------------------------------------------
+                // LIBERAR
+                // ---------------------------------------------
+
+                if (touch.phase ==
+                        UnityEngine.InputSystem.TouchPhase.Ended ||
+                    touch.phase ==
+                        UnityEngine.InputSystem.TouchPhase.Canceled)
+                {
+                    cameraFinger =
+                        -1;
+
+                    LookDelta =
+                        Vector2.zero;
+                }
+            }
+        }
+
+        // =====================================================
+        // SEGURIDAD
+        // =====================================================
+
+        /*
+         * Si el dedo de cámara desapareció por cualquier
+         * motivo, evitamos conservar movimiento residual.
+         */
+
+        if (cameraFinger >= 0)
+        {
+            bool cameraFingerStillExists =
+                false;
+
+            foreach (var touch in Touch.activeTouches)
+            {
+                if (touch.finger.index ==
+                    cameraFinger)
+                {
+                    cameraFingerStillExists =
+                        true;
+
+                    break;
                 }
             }
 
-            // ---------------------------------------------
-            // LIBERAR DEDO
-            // ---------------------------------------------
-
-            if (touch.phase ==
-                    UnityEngine.InputSystem.TouchPhase.Ended ||
-                touch.phase ==
-                    UnityEngine.InputSystem.TouchPhase.Canceled)
+            if (!cameraFingerStillExists)
             {
-                if (fingerId == cameraFinger)
-                {
-                    cameraFinger = -1;
-                    LookDelta = Vector2.zero;
-                }
+                cameraFinger =
+                    -1;
+
+                LookDelta =
+                    Vector2.zero;
             }
         }
     }

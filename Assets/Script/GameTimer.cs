@@ -71,12 +71,18 @@ public class GameTimer : MonoBehaviour
         timerText.text = FormatTime(elapsedTime);
     }
 
-    private string FormatTime(float time)
+    public string FormatTime(float time)
     {
-        int minutes = Mathf.FloorToInt(time / 60f);
-        int seconds = Mathf.FloorToInt(time % 60f);
+        int minutes =
+            Mathf.FloorToInt(time / 60f);
+
+        int seconds =
+            Mathf.FloorToInt(time % 60f);
+
         int milliseconds =
-            Mathf.FloorToInt((time * 1000f) % 1000f);
+            Mathf.FloorToInt(
+                (time * 1000f) % 1000f
+            );
 
         return string.Format(
             "{0:00}:{1:00}.{2:000}",
