@@ -37,6 +37,19 @@ struct InterfaceFuncInvoker2
 		return ((Func)invokeData.methodPtr)(obj, p1, p2, invokeData.method);
 	}
 };
+template <typename R, typename T1, typename T2>
+struct InvokerFuncInvoker2;
+template <typename R, typename T1, typename T2>
+struct InvokerFuncInvoker2<R, T1*, T2>
+{
+	static inline R Invoke (Il2CppMethodPointer methodPtr, const RuntimeMethod* method, void* obj, T1* p1, T2 p2)
+	{
+		R ret;
+		void* params[2] = { p1, &p2 };
+		method->invoker_method(methodPtr, method, obj, params, &ret);
+		return ret;
+	}
+};
 
 struct ConditionalWeakTable_2_t87BE12792DC61EC9AE17609EC1ACA0671B3F5605;
 struct ConditionalWeakTable_2_t381B9D0186C0FCC3F83C0696C28C5001468A7858;
@@ -47,6 +60,8 @@ struct Dictionary_2_tF099D849028F7351B6B99091102D4A3417711574;
 struct Dictionary_2_t9B2ADF59B0E83212023684CAE164D0B1C22E800C;
 struct Dictionary_2_tB13D0A847475988F23522A8642F7D24BA304F9B7;
 struct Dictionary_2_tCDD286F7E1A55282A7D95B27ACBCB82D3323A3A9;
+struct DotParamsList_1_t60BCE382CFFD6ADCFCFE0A0BFE3BB177E030929D;
+struct DotParamsList_1_t8F2142EC450992D7E98C1CE1EFF0CC30B15551E2;
 struct DynamicArray_1_t6CE8A1D3A689ADE15F5FDC98CBF07F439A2C6F43;
 struct DynamicArray_1_t1F5A6BEDEF657490AB27890A98FB6E43C483A240;
 struct DynamicArray_1_t1BC59A74EF1C33C3F0F6BD8068BF4B74D4C278AA;
@@ -61,6 +76,7 @@ struct ICollection_1_tA7E1692B32A36893C724B8FE80DAD8B890773A8A;
 struct ICollection_1_t820BCF52ED581777158515AA08B35379685B4D60;
 struct ICollection_1_t2DEFE02AE2D01467F12F418352B5BD4551639565;
 struct ICollection_1_tC4195DC0176BB7318207422D79A0178F9FB247C1;
+struct IComparer_1_t76B18C44D8838F955CF8C0F53336D6C7006E0B53;
 struct IEnumerator_1_t0A78B0CDCBC89B4245C1C6C01CA1C224DE6822C2;
 struct IEnumerator_1_t8A20B9E97C5C8B430E0D2665BCD73989500E0A2B;
 struct IEnumerator_1_tAE26E02000704C5AA4E38571EE21B9E9DA1B5E10;
@@ -71,21 +87,27 @@ struct IEqualityComparer_1_t4D23B021286A8492BF07FBA19D4C7321594B775F;
 struct IEqualityComparer_1_t984D540FC208A2CABAB23A4D766E1C17CA1D0833;
 struct IEqualityComparer_1_tF175EE4608832085A0EE2A97DAE545B83F097888;
 struct IEqualityComparer_1_tD02AA5F6DE51FE504D787187A1234C94738B501F;
+struct IList_1_t8E7546B74FA2018BF4FA7562464581B7A2E149EA;
 struct KeyCollection_t963D89EA1E7E0E8E6FECDF7B9A50B15D7477AE3D;
 struct KeyCollection_t6725DF5AC7475F617DDB9DA237871AD9FAB80D75;
 struct KeyCollection_tACA314578A3D994C07972DC55AA432618B441372;
 struct KeyCollection_t246CAF0F582ADDC11FEEFB70F34D8C26564B9B34;
 struct KeyCollection_tAE0C48201AB6D92D5AD1D458816B2B13DC9FF903;
 struct KeyCollection_t1D88AF2881F04084D0E73E5FD493F6F01EA92C2E;
+struct KeyList_tA3169D9878015DE9E71D56B7B74EA497F328BD7D;
+struct KeyList_t65FCF90CA69D81BBD570ED1C0D7E458B760413A4;
 struct Predicate_1_tE99D1031B5F988277D7A637B3D120FE1102C21B0;
 struct Predicate_1_t498CAB8C3A239510DF1CD4E0D9D0B8EFB398536E;
 struct Predicate_1_t384FC2EF5318B24F1C0EE968DEE10DB711C1CF87;
+struct SortedList_2_t2802B50FDC18AAD8E29B70BB8337FA1F5227B12C;
 struct ValueCollection_t2AA1C70663E99F083D2ECAA8E6D6AA58F00022D8;
 struct ValueCollection_t0F016B1C5BEC58DAA0BA4B0A2699B389590BC305;
 struct ValueCollection_t68C95977A6405D46453CCCFD51F7CB3B90A6832D;
 struct ValueCollection_t10FF6A98B17BD862F8991138D7FD29AD4847FBF6;
 struct ValueCollection_tDAA54478D6690BCDC9E7745F0B5D0265360309EC;
 struct ValueCollection_t812FACCEB8D55CB2EA9A06309C6BAE8DB28A8776;
+struct ValueList_t7F391B98A0DABBF5A13EDF12DD8CD9B4A8BC3849;
+struct ValueList_tAEEA84A91A44E0B020177D488EDCADA727E457E3;
 struct EntryU5BU5D_t124FDD4A62D10BF2C88D8DBC8230D65153D0B982;
 struct EntryU5BU5D_tE17B785CAD3F80F2B4B61714A3D2A975C55DC34F;
 struct EntryU5BU5D_tA2540CF07A907BE88ADCEB3AF3785F9B00F1E760;
@@ -108,9 +130,11 @@ struct Int32U5BU5D_t19C97395396A72ECAF310612F0760F165060314C;
 struct IntPtrU5BU5D_tFD177F8C806A6921AD7150264CCC62FA00CAD832;
 struct NameU5BU5D_t4796CCD8033B1FE5DA6C621A2EBFD0581735BF6A;
 struct ObjectU5BU5D_t8061030B0A12A55D5AD8652A20C922FE99450918;
+struct SingleU5BU5D_t89DEFE97BCEDB5857010E79ECE0F52CF6E93B87C;
 struct StackTraceU5BU5D_t32FBCB20930EAF5BAE3F450FF75228E5450DA0DF;
 struct StringU5BU5D_t7674CD946EC0CE7B3AE0BE70E6EE85F2ECD9F248;
 struct TypeU5BU5D_t97234E1129B564EB38B8D85CAC2AD8B5B9522FFB;
+struct __Il2CppFullySharedGenericTypeU5BU5D_tCAB6D060972DD49223A834B7EEFEB9FE2D003BEC;
 struct Binder_t91BFCE95A7057FADF4D8A1A342AFE52872246235;
 struct DelegateData_t9B286B493293CD2D23A5B2B5EF0E5B1324C2B77E;
 struct IDictionary_t6D03155AF1FA9083817AA5B6AD7DEEACC26AB220;
@@ -318,6 +342,28 @@ struct KeyCollection_t1D88AF2881F04084D0E73E5FD493F6F01EA92C2E  : public Runtime
 {
 	Dictionary_2_tCDD286F7E1A55282A7D95B27ACBCB82D3323A3A9* ____dictionary;
 };
+struct SortedList_2_t2802B50FDC18AAD8E29B70BB8337FA1F5227B12C  : public RuntimeObject
+{
+	SingleU5BU5D_t89DEFE97BCEDB5857010E79ECE0F52CF6E93B87C* ___keys;
+	ObjectU5BU5D_t8061030B0A12A55D5AD8652A20C922FE99450918* ___values;
+	int32_t ____size;
+	int32_t ___version;
+	RuntimeObject* ___comparer;
+	KeyList_tA3169D9878015DE9E71D56B7B74EA497F328BD7D* ___keyList;
+	ValueList_t7F391B98A0DABBF5A13EDF12DD8CD9B4A8BC3849* ___valueList;
+	RuntimeObject* ____syncRoot;
+};
+struct SortedList_2_tA2589E302D411257E366C4497429599A7FD41714  : public RuntimeObject
+{
+	SingleU5BU5D_t89DEFE97BCEDB5857010E79ECE0F52CF6E93B87C* ___keys;
+	__Il2CppFullySharedGenericTypeU5BU5D_tCAB6D060972DD49223A834B7EEFEB9FE2D003BEC* ___values;
+	int32_t ____size;
+	int32_t ___version;
+	RuntimeObject* ___comparer;
+	KeyList_t65FCF90CA69D81BBD570ED1C0D7E458B760413A4* ___keyList;
+	ValueList_tAEEA84A91A44E0B020177D488EDCADA727E457E3* ___valueList;
+	RuntimeObject* ____syncRoot;
+};
 struct ValueCollection_t2AA1C70663E99F083D2ECAA8E6D6AA58F00022D8  : public RuntimeObject
 {
 	Dictionary_2_tAC17E8AA740A34F1430D597A8D5625A480C9CDE4* ____dictionary;
@@ -372,6 +418,12 @@ struct ValueType_t6D9B272BD21782F0A9A14F2E41F85A50E97A986F_marshaled_pinvoke
 {
 };
 struct ValueType_t6D9B272BD21782F0A9A14F2E41F85A50E97A986F_marshaled_com
+{
+};
+struct DotParamsList_1_t60BCE382CFFD6ADCFCFE0A0BFE3BB177E030929D  : public SortedList_2_t2802B50FDC18AAD8E29B70BB8337FA1F5227B12C
+{
+};
+struct DotParamsList_1_t8F2142EC450992D7E98C1CE1EFF0CC30B15551E2  : public SortedList_2_tA2589E302D411257E366C4497429599A7FD41714
 {
 };
 struct HashEntry_1_t5AE25C72F3412B2BFC157F053A4BE627685A9ED5 
@@ -474,6 +526,10 @@ struct Name_t9E47EF25D1808C27515EB99D71DB90E187AC1354_marshaled_com
 {
 	Il2CppChar* ___name;
 	int32_t ___utf8ByteCount;
+};
+struct Single_t4530F2FF86FCB0DC29F35385CA1BD21BE294761C 
+{
+	float ___m_value;
 };
 struct Void_t4861ACF8F4594C3437BB48B6E56783494B843915 
 {
@@ -1811,6 +1867,9 @@ IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void Dictionary_2_CopyTo_m7DBD610F9B738C356B4
 IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void Dictionary_2_Resize_mF45F5D4CBA5926DF6DF5CC4026A01DA3A99A9807_gshared (Dictionary_2_tCDD286F7E1A55282A7D95B27ACBCB82D3323A3A9* __this, const RuntimeMethod* method) ;
 IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void Dictionary_2_Resize_m460605BFA4F62E02F07CC895272619D3AE8185E0_gshared (Dictionary_2_tCDD286F7E1A55282A7D95B27ACBCB82D3323A3A9* __this, int32_t ___0_newSize, bool ___1_forceNewHashCodes, const RuntimeMethod* method) ;
 IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void Dictionary_2_set_Item_mCFB598A669043FFF8F7F0626C5B3DF336A09001E_gshared (Dictionary_2_tCDD286F7E1A55282A7D95B27ACBCB82D3323A3A9* __this, ConverterKey_t6745D40AF749763178406F1EBDE17C17F74A60ED ___0_key, RuntimeObject* ___1_value, const RuntimeMethod* method) ;
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void SortedList_2__ctor_mC084A2CE7A599F6766B3E37922500949152A24E1_gshared (SortedList_2_t2802B50FDC18AAD8E29B70BB8337FA1F5227B12C* __this, int32_t ___0_capacity, const RuntimeMethod* method) ;
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR RuntimeObject* SortedList_2_get_Keys_m28695A73A0BB30797028B3E3D3315B53EF4AA96D_gshared (SortedList_2_t2802B50FDC18AAD8E29B70BB8337FA1F5227B12C* __this, const RuntimeMethod* method) ;
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR int32_t DotParamsList_1_BinarySearch_TisSingle_t4530F2FF86FCB0DC29F35385CA1BD21BE294761C_mFD396468D86817B6AC51E244869479DD3EE5F9CA_gshared (RuntimeObject* ___0_list, float ___1_value, const RuntimeMethod* method) ;
 IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR void DynamicArray_1_set_size_m966F2791A5CBBEFE6C0F020852AB864C01CD4061_gshared_inline (DynamicArray_1_t6CE8A1D3A689ADE15F5FDC98CBF07F439A2C6F43* __this, int32_t ___0_value, const RuntimeMethod* method) ;
 IL2CPP_MANAGED_FORCE_INLINE IL2CPP_METHOD_ATTR int32_t DynamicArray_1_get_size_m7875D3F075466E48C7D4A82683D015BAEA9B1DE8_gshared_inline (DynamicArray_1_t6CE8A1D3A689ADE15F5FDC98CBF07F439A2C6F43* __this, const RuntimeMethod* method) ;
 IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR int32_t DynamicArray_1_IndexOf_m44316F60BF40468106BA85D1D9E2BCDEC0836B48_gshared (DynamicArray_1_t6CE8A1D3A689ADE15F5FDC98CBF07F439A2C6F43* __this, HashEntry_1_t5AE25C72F3412B2BFC157F053A4BE627685A9ED5 ___0_item, const RuntimeMethod* method) ;
@@ -2354,6 +2413,18 @@ inline void Dictionary_2_Resize_m460605BFA4F62E02F07CC895272619D3AE8185E0 (Dicti
 inline void Dictionary_2_set_Item_mCFB598A669043FFF8F7F0626C5B3DF336A09001E (Dictionary_2_tCDD286F7E1A55282A7D95B27ACBCB82D3323A3A9* __this, ConverterKey_t6745D40AF749763178406F1EBDE17C17F74A60ED ___0_key, RuntimeObject* ___1_value, const RuntimeMethod* method)
 {
 	((  void (*) (Dictionary_2_tCDD286F7E1A55282A7D95B27ACBCB82D3323A3A9*, ConverterKey_t6745D40AF749763178406F1EBDE17C17F74A60ED, RuntimeObject*, const RuntimeMethod*))Dictionary_2_set_Item_mCFB598A669043FFF8F7F0626C5B3DF336A09001E_gshared)(__this, ___0_key, ___1_value, method);
+}
+inline void SortedList_2__ctor_mC084A2CE7A599F6766B3E37922500949152A24E1 (SortedList_2_t2802B50FDC18AAD8E29B70BB8337FA1F5227B12C* __this, int32_t ___0_capacity, const RuntimeMethod* method)
+{
+	((  void (*) (SortedList_2_t2802B50FDC18AAD8E29B70BB8337FA1F5227B12C*, int32_t, const RuntimeMethod*))SortedList_2__ctor_mC084A2CE7A599F6766B3E37922500949152A24E1_gshared)(__this, ___0_capacity, method);
+}
+inline RuntimeObject* SortedList_2_get_Keys_m28695A73A0BB30797028B3E3D3315B53EF4AA96D (SortedList_2_t2802B50FDC18AAD8E29B70BB8337FA1F5227B12C* __this, const RuntimeMethod* method)
+{
+	return ((  RuntimeObject* (*) (SortedList_2_t2802B50FDC18AAD8E29B70BB8337FA1F5227B12C*, const RuntimeMethod*))SortedList_2_get_Keys_m28695A73A0BB30797028B3E3D3315B53EF4AA96D_gshared)(__this, method);
+}
+inline int32_t DotParamsList_1_BinarySearch_TisSingle_t4530F2FF86FCB0DC29F35385CA1BD21BE294761C_mFD396468D86817B6AC51E244869479DD3EE5F9CA (RuntimeObject* ___0_list, float ___1_value, const RuntimeMethod* method)
+{
+	return ((  int32_t (*) (RuntimeObject*, float, const RuntimeMethod*))DotParamsList_1_BinarySearch_TisSingle_t4530F2FF86FCB0DC29F35385CA1BD21BE294761C_mFD396468D86817B6AC51E244869479DD3EE5F9CA_gshared)(___0_list, ___1_value, method);
 }
 inline void DynamicArray_1_set_size_m966F2791A5CBBEFE6C0F020852AB864C01CD4061_inline (DynamicArray_1_t6CE8A1D3A689ADE15F5FDC98CBF07F439A2C6F43* __this, int32_t ___0_value, const RuntimeMethod* method)
 {
@@ -19116,6 +19187,72 @@ IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR RuntimeObject* Dictionary_2_System_Collection
 		Enumerator_tB3964E4530F5465A0A85F81C801AFB877D60BDAD L_1 = L_0;
 		RuntimeObject* L_2 = Box(il2cpp_rgctx_data_no_init(method->klass->rgctx_data, 31), &L_1);
 		return (RuntimeObject*)L_2;
+	}
+}
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Winvalid-offsetof"
+#pragma clang diagnostic ignored "-Wunused-variable"
+#endif
+// Method Definition Index: 63968
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void DotParamsList_1__ctor_m6E43221FF1D7C9EE43502B27BABE7035D13D09C3_gshared (DotParamsList_1_t60BCE382CFFD6ADCFCFE0A0BFE3BB177E030929D* __this, int32_t ___0_capacity, const RuntimeMethod* method) 
+{
+	{
+		//<source_info:C:/Users/Yeye/Documents/GitHub/Guia3_DesarrolloVideojuegos/Assets/Farland Skies/!Core/Scripts/DotParams/DotParamsList.cs:13>
+		int32_t L_0 = ___0_capacity;
+		SortedList_2__ctor_mC084A2CE7A599F6766B3E37922500949152A24E1((SortedList_2_t2802B50FDC18AAD8E29B70BB8337FA1F5227B12C*)__this, L_0, il2cpp_rgctx_method(method->klass->rgctx_data, 0));
+		//<source_info:C:/Users/Yeye/Documents/GitHub/Guia3_DesarrolloVideojuegos/Assets/Farland Skies/!Core/Scripts/DotParams/DotParamsList.cs:13>
+		return;
+	}
+}
+// Method Definition Index: 63969
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR int32_t DotParamsList_1_FindIndexPerTime_m75DBF5CF68A397086678C60EC085510CED6EA168_gshared (DotParamsList_1_t60BCE382CFFD6ADCFCFE0A0BFE3BB177E030929D* __this, float ___0_time, const RuntimeMethod* method) 
+{
+	{
+		//<source_info:C:/Users/Yeye/Documents/GitHub/Guia3_DesarrolloVideojuegos/Assets/Farland Skies/!Core/Scripts/DotParams/DotParamsList.cs:21>
+		NullCheck((SortedList_2_t2802B50FDC18AAD8E29B70BB8337FA1F5227B12C*)__this);
+		RuntimeObject* L_0;
+		L_0 = SortedList_2_get_Keys_m28695A73A0BB30797028B3E3D3315B53EF4AA96D((SortedList_2_t2802B50FDC18AAD8E29B70BB8337FA1F5227B12C*)__this, il2cpp_rgctx_method(method->klass->rgctx_data, 2));
+		float L_1 = ___0_time;
+		int32_t L_2;
+		L_2 = DotParamsList_1_BinarySearch_TisSingle_t4530F2FF86FCB0DC29F35385CA1BD21BE294761C_mFD396468D86817B6AC51E244869479DD3EE5F9CA(L_0, L_1, il2cpp_rgctx_method(method->klass->rgctx_data, 3));
+		return L_2;
+	}
+}
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Winvalid-offsetof"
+#pragma clang diagnostic ignored "-Wunused-variable"
+#endif
+// Method Definition Index: 63968
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR void DotParamsList_1__ctor_m599B457E6BB49C333B5015456E68CE874A121103_gshared (DotParamsList_1_t8F2142EC450992D7E98C1CE1EFF0CC30B15551E2* __this, int32_t ___0_capacity, const RuntimeMethod* method) 
+{
+	{
+		//<source_info:C:/Users/Yeye/Documents/GitHub/Guia3_DesarrolloVideojuegos/Assets/Farland Skies/!Core/Scripts/DotParams/DotParamsList.cs:13>
+		int32_t L_0 = ___0_capacity;
+		((  void (*) (SortedList_2_tA2589E302D411257E366C4497429599A7FD41714*, int32_t, const RuntimeMethod*))il2cpp_codegen_get_direct_method_pointer(il2cpp_rgctx_method(method->klass->rgctx_data, 0)))((SortedList_2_tA2589E302D411257E366C4497429599A7FD41714*)__this, L_0, il2cpp_rgctx_method(method->klass->rgctx_data, 0));
+		//<source_info:C:/Users/Yeye/Documents/GitHub/Guia3_DesarrolloVideojuegos/Assets/Farland Skies/!Core/Scripts/DotParams/DotParamsList.cs:13>
+		return;
+	}
+}
+// Method Definition Index: 63969
+IL2CPP_EXTERN_C IL2CPP_METHOD_ATTR int32_t DotParamsList_1_FindIndexPerTime_m1D1C5411F8A50A411C2680267DF8827B694FCF06_gshared (DotParamsList_1_t8F2142EC450992D7E98C1CE1EFF0CC30B15551E2* __this, float ___0_time, const RuntimeMethod* method) 
+{
+	{
+		//<source_info:C:/Users/Yeye/Documents/GitHub/Guia3_DesarrolloVideojuegos/Assets/Farland Skies/!Core/Scripts/DotParams/DotParamsList.cs:21>
+		NullCheck((SortedList_2_tA2589E302D411257E366C4497429599A7FD41714*)__this);
+		RuntimeObject* L_0;
+		L_0 = ((  RuntimeObject* (*) (SortedList_2_tA2589E302D411257E366C4497429599A7FD41714*, const RuntimeMethod*))il2cpp_codegen_get_direct_method_pointer(il2cpp_rgctx_method(method->klass->rgctx_data, 2)))((SortedList_2_tA2589E302D411257E366C4497429599A7FD41714*)__this, il2cpp_rgctx_method(method->klass->rgctx_data, 2));
+		float L_1 = ___0_time;
+		int32_t L_2;
+		L_2 = InvokerFuncInvoker2< int32_t, RuntimeObject*, float >::Invoke(il2cpp_codegen_get_direct_method_pointer(il2cpp_rgctx_method(method->klass->rgctx_data, 3)), il2cpp_rgctx_method(method->klass->rgctx_data, 3), NULL, L_0, L_1);
+		return L_2;
 	}
 }
 #ifdef __clang__

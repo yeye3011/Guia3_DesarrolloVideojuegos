@@ -1564,6 +1564,12 @@ MonoBehaviour:
     m_Bits: 72
   contactDelay: 0.15
   supportCheckDistance: 0.15
+  groundLayer:
+    serializedVersion: 2
+    m_Bits: 8
+  groundRecoveryCheckHeight: 10
+  minimumGroundGap: 0.03
+  fallThroughTolerance: 0.08
   maxSpeedToStabilize: 3
   uprightStrength: 7
   rotationDamping: 6
@@ -3297,6 +3303,12 @@ MonoBehaviour:
     m_Bits: 72
   contactDelay: 0.15
   supportCheckDistance: 0.15
+  groundLayer:
+    serializedVersion: 2
+    m_Bits: 8
+  groundRecoveryCheckHeight: 10
+  minimumGroundGap: 0.03
+  fallThroughTolerance: 0.08
   maxSpeedToStabilize: 3
   uprightStrength: 7
   rotationDamping: 6
@@ -5069,6 +5081,12 @@ MonoBehaviour:
     m_Bits: 72
   contactDelay: 0.15
   supportCheckDistance: 0.15
+  groundLayer:
+    serializedVersion: 2
+    m_Bits: 8
+  groundRecoveryCheckHeight: 10
+  minimumGroundGap: 0.03
+  fallThroughTolerance: 0.08
   maxSpeedToStabilize: 3
   uprightStrength: 7
   rotationDamping: 6
@@ -5253,6 +5271,12 @@ MonoBehaviour:
     m_Bits: 72
   contactDelay: 0.15
   supportCheckDistance: 0.15
+  groundLayer:
+    serializedVersion: 2
+    m_Bits: 8
+  groundRecoveryCheckHeight: 10
+  minimumGroundGap: 0.03
+  fallThroughTolerance: 0.08
   maxSpeedToStabilize: 3
   uprightStrength: 7
   rotationDamping: 6

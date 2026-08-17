@@ -25,6 +25,24 @@ public class PigStabilizer : MonoBehaviour
     [SerializeField] private float supportCheckDistance = 0.15f;
 
     // =====================================================
+    // PROTECCIÓN CONTRA EL SUELO
+    // =====================================================
+
+    [Header("Protección anticaída")]
+
+    [Tooltip("Seleccionar únicamente la capa Ground.")]
+    [SerializeField] private LayerMask groundLayer;
+
+    [Tooltip("Altura desde la que buscamos el suelo.")]
+    [SerializeField] private float groundRecoveryCheckHeight = 10f;
+
+    [Tooltip("Separación mínima entre el cerdito y el suelo.")]
+    [SerializeField] private float minimumGroundGap = 0.03f;
+
+    [Tooltip("Margen permitido antes de considerar que atravesó el suelo.")]
+    [SerializeField] private float fallThroughTolerance = 0.08f;
+
+    // =====================================================
     // ESTABILIZACIÓN NORMAL
     // =====================================================
 
@@ -63,7 +81,6 @@ public class PigStabilizer : MonoBehaviour
     // =====================================================
 
     private bool hasSupport = false;
-
     private bool supportedByPig = false;
 
     private float contactTime = 0f;
@@ -122,14 +139,24 @@ public class PigStabilizer : MonoBehaviour
             return;
         }
 
-        // Drag controla completamente el cerdito.
+        // Mientras Drag lo controla,
+        // PigStabilizer no modifica su posición.
         if (body.isKinematic)
         {
             contactTime = 0f;
             return;
         }
 
-        // Comprobamos realmente qué existe debajo.
+        // =================================================
+        // PROTECCIÓN CONTRA ATRAVESAR EL SUELO
+        // =================================================
+
+        RecoverIfBelowGround();
+
+        // =================================================
+        // SOPORTE NORMAL
+        // =================================================
+
         CheckSupportBelow();
 
         if (!hasSupport)
@@ -151,12 +178,11 @@ public class PigStabilizer : MonoBehaviour
         if (contactTime < contactDelay)
             return;
 
-        // Siempre intentamos que quede de pie
-        // cuando tiene soporte.
+        // Enderezar cuando tiene soporte.
         StabilizeRotation();
 
-        // Si está encima de otro cerdito,
-        // también estabilizamos horizontalmente.
+        // Si está sobre otro cerdito,
+        // estabilizar también la pila.
         if (supportedByPig &&
             supportingPig != null)
         {
@@ -174,6 +200,99 @@ public class PigStabilizer : MonoBehaviour
     }
 
     // =====================================================
+    // PROTECCIÓN ANTICAÍDA
+    // =====================================================
+
+    private void RecoverIfBelowGround()
+    {
+        /*
+         * Buscamos el suelo desde arriba utilizando
+         * únicamente la capa Ground.
+         *
+         * Así no importa si Plano_guia está en Y = 0,
+         * Y = 2, Y = -3, etc.
+         */
+
+        Vector3 origin =
+            new Vector3(
+                pigCollider.bounds.center.x,
+                pigCollider.bounds.max.y +
+                    groundRecoveryCheckHeight,
+                pigCollider.bounds.center.z
+            );
+
+        float rayDistance =
+            groundRecoveryCheckHeight * 3f;
+
+        if (!Physics.Raycast(
+            origin,
+            Vector3.down,
+            out RaycastHit hit,
+            rayDistance,
+            groundLayer,
+            QueryTriggerInteraction.Ignore))
+        {
+            return;
+        }
+
+        // Distancia real entre el pivote del cerdito
+        // y la parte inferior de su Collider.
+        float bottomOffset =
+            transform.position.y -
+            pigCollider.bounds.min.y;
+
+        bottomOffset =
+            Mathf.Max(
+                bottomOffset,
+                pigCollider.bounds.extents.y
+            );
+
+        // Esta es la Y mínima correcta para ESTE cerdito.
+        float safeY =
+            hit.point.y +
+            bottomOffset +
+            minimumGroundGap;
+
+        /*
+         * Solo recuperamos si realmente ha atravesado
+         * el suelo. No queremos interferir con saltos,
+         * Swipe o con una pila normal.
+         */
+
+        if (transform.position.y >=
+            safeY - fallThroughTolerance)
+        {
+            return;
+        }
+
+        Vector3 recoveredPosition =
+            body.position;
+
+        recoveredPosition.y =
+            safeY;
+
+        body.position =
+            recoveredPosition;
+
+        // Detener únicamente la caída vertical.
+        Vector3 velocity =
+            body.linearVelocity;
+
+        if (velocity.y < 0f)
+        {
+            velocity.y = 0f;
+        }
+
+        body.linearVelocity =
+            velocity;
+
+        Debug.LogWarning(
+            name +
+            ": atravesó el suelo y fue recuperado."
+        );
+    }
+
+    // =====================================================
     // COMPROBAR QUÉ HAY DEBAJO
     // =====================================================
 
@@ -183,8 +302,6 @@ public class PigStabilizer : MonoBehaviour
         supportedByPig = false;
         supportingPig = null;
 
-        // Punto ligeramente por encima de
-        // la parte inferior del collider.
         Vector3 origin =
             new Vector3(
                 pigCollider.bounds.center.x,
@@ -212,11 +329,11 @@ public class PigStabilizer : MonoBehaviour
             if (hit.collider == null)
                 continue;
 
-            // Ignorar nuestro propio collider.
+            // Ignorar nuestro propio Collider.
             if (hit.collider == pigCollider)
                 continue;
 
-            // Ignorar colliders hijos del mismo cerdito.
+            // Ignorar hijos del mismo cerdito.
             if (hit.collider.transform.IsChildOf(transform))
                 continue;
 
@@ -229,7 +346,8 @@ public class PigStabilizer : MonoBehaviour
             hasSupport = true;
 
             CubeInteractable otherPig =
-                hit.collider.GetComponent<CubeInteractable>();
+                hit.collider.GetComponent<
+                    CubeInteractable>();
 
             if (otherPig == null)
             {
@@ -257,12 +375,14 @@ public class PigStabilizer : MonoBehaviour
         Debug.DrawRay(
             origin,
             Vector3.down * distance,
-            hasSupport ? Color.green : Color.red
+            hasSupport ?
+                Color.green :
+                Color.red
         );
     }
 
     // =====================================================
-    // COMPROBAR ALINEACIÓN DE PILA
+    // COMPROBAR ALINEACIÓN
     // =====================================================
 
     private void CheckStackAlignment()
@@ -341,8 +461,6 @@ public class PigStabilizer : MonoBehaviour
             newPosition
         );
 
-        // Reducimos únicamente movimiento horizontal.
-        // La gravedad continúa funcionando en Y.
         Vector3 velocity =
             body.linearVelocity;
 
@@ -444,12 +562,6 @@ public class PigStabilizer : MonoBehaviour
             ReleaseStack();
             return;
         }
-
-        /*
-         * No inventamos aquí qué cerdito está debajo.
-         * CheckSupportBelow() lo detectará físicamente
-         * en el siguiente FixedUpdate.
-         */
 
         contactTime = 0f;
 

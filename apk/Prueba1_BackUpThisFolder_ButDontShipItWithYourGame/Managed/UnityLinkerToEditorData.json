@@ -222,6 +222,12 @@
             "icon": null
           },
           {
+            "name": "LensFlare",
+            "scenes": [],
+            "dependencyType": 0,
+            "icon": null
+          },
+          {
             "name": "LevelGameManager",
             "scenes": [
               "Assets/Scenes/InstruccionesScene.unity",
@@ -965,6 +971,14 @@
         "dependencies": [
           {
             "name": "BoxCollider",
+            "scenes": [
+              "Assets/Scenes/MainScene.unity"
+            ],
+            "dependencyType": 0,
+            "icon": null
+          },
+          {
+            "name": "CapsuleCollider",
             "scenes": [
               "Assets/Scenes/MainScene.unity"
             ],
