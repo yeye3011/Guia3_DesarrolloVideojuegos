@@ -8,47 +8,37 @@ public class PlayerController : MonoBehaviour
     // =====================================================
 
     [Header("Referencias")]
-    [SerializeField] private CharacterController characterController;
+    [SerializeField]
+    private CharacterController characterController;
 
     // =====================================================
     // MOVIMIENTO
     // =====================================================
 
     [Header("Movimiento")]
-    [SerializeField] private float moveSpeed = 5f;
+    [SerializeField]
+    private float moveSpeed = 5f;
+
+    // =====================================================
+    // ROTACIÓN Y
+    // =====================================================
+
+    [Header("Rotación Y")]
+    [SerializeField]
+    private float rotationSpeed = 100f;
+
+    // -1 = izquierda
+    //  0 = sin rotación
+    //  1 = derecha
+    private float rotationInput = 0f;
 
     // =====================================================
     // INPUT
     // =====================================================
 
     [Header("Input")]
-    [SerializeField] private InputActionReference moveAction;
-
-    // =====================================================
-    // CÁMARA
-    // =====================================================
-
-    [Header("Cámara")]
-    [SerializeField] private Transform cameraTransform;
-
-    [SerializeField] private float lookSensitivity = 0.1f;
-
-    [SerializeField] private float minLookX = -80f;
-
-    [SerializeField] private float maxLookX = 80f;
-
-    // =====================================================
-    // MULTITOUCH
-    // =====================================================
-
-    [Header("Multitouch")]
-    [SerializeField] private SplitScreenTouchZones touchZones;
-
-    // =====================================================
-    // VARIABLES
-    // =====================================================
-
-    private float cameraRotationX = 0f;
+    [SerializeField]
+    private InputActionReference moveAction;
 
     // =====================================================
     // AWAKE
@@ -56,8 +46,8 @@ public class PlayerController : MonoBehaviour
 
     private void Awake()
     {
-        // Si olvidamos asignarlo manualmente,
-        // intentamos encontrarlo automáticamente.
+        // Si no se asignó manualmente,
+        // buscamos el CharacterController del Player.
         if (characterController == null)
         {
             characterController =
@@ -67,7 +57,7 @@ public class PlayerController : MonoBehaviour
         if (characterController == null)
         {
             Debug.LogError(
-                "Player necesita un Character Controller."
+                "Player necesita un CharacterController."
             );
         }
     }
@@ -99,11 +89,11 @@ public class PlayerController : MonoBehaviour
     private void Update()
     {
         MovePlayer();
-        LookCamera();
+        RotatePlayer();
     }
 
     // =====================================================
-    // MOVIMIENTO
+    // MOVIMIENTO X / Z
     // =====================================================
 
     private void MovePlayer()
@@ -114,17 +104,12 @@ public class PlayerController : MonoBehaviour
             return;
         }
 
-        // -------------------------------------------------
-        // LEER JOYSTICK
-        // -------------------------------------------------
-
+        // Leer joystick.
         Vector2 input =
             moveAction.action.ReadValue<Vector2>();
 
-        // -------------------------------------------------
-        // CALCULAR DIRECCIÓN
-        // -------------------------------------------------
-
+        // Movimiento relativo a la dirección
+        // hacia la que mira el Player.
         Vector3 direction =
             transform.forward * input.y +
             transform.right * input.x;
@@ -134,19 +119,6 @@ public class PlayerController : MonoBehaviour
                 direction,
                 1f
             );
-
-        // -------------------------------------------------
-        // MOVER CON CHARACTER CONTROLLER
-        // -------------------------------------------------
-
-        /*
-         * Antes utilizábamos:
-         *
-         * transform.position += ...
-         *
-         * Ahora CharacterController.Move se encarga
-         * de respetar las colisiones con los muros.
-         */
 
         Vector3 movement =
             direction *
@@ -159,55 +131,53 @@ public class PlayerController : MonoBehaviour
     }
 
     // =====================================================
-    // CÁMARA
+    // ROTACIÓN SOBRE Y
     // =====================================================
 
-    private void LookCamera()
+    private void RotatePlayer()
     {
-        if (touchZones == null ||
-            cameraTransform == null)
+        if (Mathf.Approximately(
+            rotationInput,
+            0f))
         {
             return;
         }
 
-        Vector2 look =
-            touchZones.LookDelta;
-
-        float lookX =
-            look.x *
-            lookSensitivity;
-
-        float lookY =
-            look.y *
-            lookSensitivity;
-
-        // -------------------------------------------------
-        // ROTACIÓN HORIZONTAL DEL PLAYER
-        // -------------------------------------------------
+        float rotationAmount =
+            rotationInput *
+            rotationSpeed *
+            Time.deltaTime;
 
         transform.Rotate(
-            Vector3.up * lookX
+            Vector3.up *
+            rotationAmount
         );
+    }
 
-        // -------------------------------------------------
-        // ROTACIÓN VERTICAL DE LA CÁMARA
-        // -------------------------------------------------
+    // =====================================================
+    // ROTAR A LA IZQUIERDA
+    // =====================================================
 
-        cameraRotationX -=
-            lookY;
+    public void RotateLeftStart()
+    {
+        rotationInput = -1f;
+    }
 
-        cameraRotationX =
-            Mathf.Clamp(
-                cameraRotationX,
-                minLookX,
-                maxLookX
-            );
+    // =====================================================
+    // ROTAR A LA DERECHA
+    // =====================================================
 
-        cameraTransform.localRotation =
-            Quaternion.Euler(
-                cameraRotationX,
-                0f,
-                0f
-            );
+    public void RotateRightStart()
+    {
+        rotationInput = 1f;
+    }
+
+    // =====================================================
+    // DETENER ROTACIÓN
+    // =====================================================
+
+    public void StopRotation()
+    {
+        rotationInput = 0f;
     }
 }
