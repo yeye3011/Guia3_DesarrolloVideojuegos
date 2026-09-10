@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Net.NetworkInformation;
@@ -72,8 +73,7 @@ public class RemoteObjectServer : MonoBehaviour
             listener.Start();
             running = true;
 
-            acceptThread = new Thread(AcceptLoop);
-            acceptThread.IsBackground = true;
+            acceptThread = new Thread(AcceptLoop) { IsBackground = true };
             acceptThread.Start();
 
             WriteStatus($"Servidor escuchando en {GetBestIPv4()}:{port}");
@@ -105,8 +105,7 @@ public class RemoteObjectServer : MonoBehaviour
         connectedClient?.Close();
         connectedClient = client;
 
-        readThread = new Thread(() => ReadLoop(client));
-        readThread.IsBackground = true;
+        readThread = new Thread(() => ReadLoop(client)) { IsBackground = true };
         readThread.Start();
     }
 
@@ -180,7 +179,6 @@ public class RemoteObjectServer : MonoBehaviour
     {
         if (controlledObject == null) return;
 
-        // Movimiento X/Z relativo a la orientación del RemotePlayer
         Vector3 direction = controlledObject.forward * currentInput.z + controlledObject.right * currentInput.x;
         direction = Vector3.ClampMagnitude(direction, 1f);
 
@@ -195,7 +193,6 @@ public class RemoteObjectServer : MonoBehaviour
             controlledObject.Translate(moveVelocity, Space.World);
         }
 
-        // Rotación Y (Yaw)
         if (!Mathf.Approximately(currentInput.yaw, 0f))
         {
             float rotationAmount = currentInput.yaw * rotationSpeed * Time.deltaTime;
@@ -208,7 +205,6 @@ public class RemoteObjectServer : MonoBehaviour
         if (heldObject != null)
             return;
 
-        // Buscar colliders en el radio configurado
         Collider[] hits = Physics.OverlapSphere(controlledObject.position, grabRadius);
 
         Collider nearest = hits
@@ -231,7 +227,6 @@ public class RemoteObjectServer : MonoBehaviour
 
         if (heldBody != null)
         {
-            // Liberar de pila previa si la tiene
             PigStabilizer stabilizer = heldObject.GetComponent<PigStabilizer>();
             if (stabilizer != null)
             {
@@ -268,10 +263,7 @@ public class RemoteObjectServer : MonoBehaviour
         heldBody = null;
     }
 
-    private void OnApplicationQuit()
-    {
-        StopServer();
-    }
+    private void OnApplicationQuit() => StopServer();
 
     private void StopServer()
     {
@@ -289,22 +281,67 @@ public class RemoteObjectServer : MonoBehaviour
             statusText.text = message;
     }
 
+ 
+    //Selecciona la mejor IP disponible dando prioridad a la tarjeta Wi-Fi real.
+    
     private static string GetBestIPv4()
     {
-        foreach (NetworkInterface ni in NetworkInterface.GetAllNetworkInterfaces())
-        {
-            if (ni.OperationalStatus != OperationalStatus.Up)
-                continue;
+        string[] ips = GetAllCandidateIPv4s();
+        if (ips.Length == 0) return "0.0.0.0";
 
-            foreach (UnicastIPAddressInformation ip in ni.GetIPProperties().UnicastAddresses)
+        // Palabras clave para identificar adaptadores Wi-Fi
+        string[] wifiHints = { "wlan", "wifi", "wlo", "wl ", "wlp" };
+
+        foreach (var ni in NetworkInterface.GetAllNetworkInterfaces())
+        {
+            if (ni.OperationalStatus != OperationalStatus.Up) continue;
+
+            string name = (ni.Name + " " + ni.Description).ToLowerInvariant();
+            if (!wifiHints.Any(h => name.Contains(h))) continue;
+
+            var ipProps = ni.GetIPProperties();
+            foreach (var ua in ipProps.UnicastAddresses)
             {
-                if (ip.Address.AddressFamily == AddressFamily.InterNetwork && !IPAddress.IsLoopback(ip.Address))
-                    return ip.Address.ToString();
+                if (ua.Address.AddressFamily == AddressFamily.InterNetwork)
+                {
+                    string ip = ua.Address.ToString();
+                    if (ips.Contains(ip)) return ip;
+                }
             }
         }
-        return "0.0.0.0";
+
+        // Si no detecta Wi-Fi explícito, devuelve la primera IP local válida
+        return ips[0];
     }
 
+    // Filtra interfaces inactivas, loopback, túneles y direcciones APIPA (169.254.x.x)
+    private static string[] GetAllCandidateIPv4s()
+    {
+        var list = new List<string>();
+
+        foreach (var ni in NetworkInterface.GetAllNetworkInterfaces())
+        {
+            if (ni.OperationalStatus != OperationalStatus.Up) continue;
+            if (ni.NetworkInterfaceType == NetworkInterfaceType.Loopback) continue;
+            if (ni.NetworkInterfaceType == NetworkInterfaceType.Tunnel) continue;
+
+            var ipProps = ni.GetIPProperties();
+            foreach (var ua in ipProps.UnicastAddresses)
+            {
+                if (ua.Address.AddressFamily != AddressFamily.InterNetwork) continue;
+
+                IPAddress ip = ua.Address;
+                if (IPAddress.IsLoopback(ip)) continue;
+
+                // Descarta direcciones sin conexión real
+                byte[] bytes = ip.GetAddressBytes();
+                if (bytes[0] == 169 && bytes[1] == 254) continue;
+
+                list.Add(ip.ToString());
+            }
+        }
+        return list.Distinct().ToArray();
+    }
     private void OnDrawGizmosSelected()
     {
         if (controlledObject != null)

@@ -53,10 +53,9 @@ public class SmartphoneSocketController : MonoBehaviour
 
         if (joystickThumb != null && joystickBackground != null)
         {
-            // Vector de desplazamiento entre el centro y la bola roja
+            // Vector de desplazamiento
             Vector3 displacement = joystickThumb.position - joystickBackground.position;
 
-            // Radio en espacio de pantalla
             float radius = (joystickBackground.rect.width * joystickBackground.lossyScale.x) * 0.5f;
 
             if (radius > 0)
