@@ -10,11 +10,12 @@ public class SmartphoneSocketController : MonoBehaviour
     [SerializeField] private TMP_InputField ipField;
     [SerializeField] private TMP_InputField portField;
     [SerializeField] private TMP_Text statusText;
+    [SerializeField] private GameObject connectionMenuPanel; 
     [SerializeField] private float sendInterval = 0.05f;
 
     [Header("UI Controls (Joystick)")]
-    [SerializeField] private RectTransform joystickThumb;       // Objeto JoystickHandle (Círculo rojo)
-    [SerializeField] private RectTransform joystickBackground;  // Objeto JoystickBackground
+    [SerializeField] private RectTransform joystickThumb;
+    [SerializeField] private RectTransform joystickBackground;
 
     private TcpClient client;
     private NetworkStream stream;
@@ -23,7 +24,6 @@ public class SmartphoneSocketController : MonoBehaviour
     private float yawInput;
     private bool grabRequested;
     private bool releaseRequested;
-
     public void Connect()
     {
         try
@@ -36,6 +36,12 @@ public class SmartphoneSocketController : MonoBehaviour
             stream = client.GetStream();
 
             SetStatus($"Conectado a {ip}:{port}");
+
+            
+            if (connectionMenuPanel != null)
+            {
+                connectionMenuPanel.SetActive(false); 
+            }
         }
         catch (Exception ex)
         {

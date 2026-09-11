@@ -33,8 +33,7 @@ public class RemoteObjectServer : MonoBehaviour
     [SerializeField] private float rotationSpeed = 100f;
 
     [Header("Grab System")]
-    [SerializeField] private Transform holdPoint;
-    [SerializeField] private float grabRadius = 2.5f;
+    [SerializeField] private GrabController grabController;
 
     private TcpListener listener;
     private TcpClient connectedClient;
@@ -45,9 +44,6 @@ public class RemoteObjectServer : MonoBehaviour
     private readonly ConcurrentQueue<string> incomingLines = new ConcurrentQueue<string>();
     private RemoteControlMessage currentInput = new RemoteControlMessage();
 
-    private GrabbableObject heldObject;
-    private Rigidbody heldBody;
-
     private void Start()
     {
         if (controlledObject == null)
@@ -56,10 +52,10 @@ public class RemoteObjectServer : MonoBehaviour
         if (characterController == null)
             characterController = controlledObject.GetComponent<CharacterController>();
 
-        if (holdPoint == null)
-            holdPoint = controlledObject;
+        if (grabController == null)
+            grabController = GetComponent<GrabController>();
 
-        WriteStatus($"IP: {GetBestIPv4()} PORT: {port}");
+        WriteStatus($"IP: {GetBestIPv4()}        PORT: {port}");
     }
 
     public void StartServer()
@@ -76,7 +72,7 @@ public class RemoteObjectServer : MonoBehaviour
             acceptThread = new Thread(AcceptLoop) { IsBackground = true };
             acceptThread.Start();
 
-            WriteStatus($"Servidor escuchando en {GetBestIPv4()}:{port}");
+            WriteStatus($"Servidor escuchando en   IP: {GetBestIPv4()}    PORT:{port}");
         }
         catch (Exception ex)
         {
@@ -202,65 +198,26 @@ public class RemoteObjectServer : MonoBehaviour
 
     private void TryGrab()
     {
-        if (heldObject != null)
-            return;
-
-        Collider[] hits = Physics.OverlapSphere(controlledObject.position, grabRadius);
-
-        Collider nearest = hits
-            .Where(hit => hit.GetComponent<GrabbableObject>() != null || hit.GetComponentInParent<GrabbableObject>() != null)
-            .OrderBy(hit => Vector3.Distance(controlledObject.position, hit.transform.position))
-            .FirstOrDefault();
-
-        if (nearest == null)
-            return;
-
-        GrabbableObject grabbable = nearest.GetComponent<GrabbableObject>();
-        if (grabbable == null)
-            grabbable = nearest.GetComponentInParent<GrabbableObject>();
-
-        if (grabbable == null)
-            return;
-
-        heldObject = grabbable;
-        heldBody = heldObject.GetComponent<Rigidbody>();
-
-        if (heldBody != null)
+        if (grabController != null)
         {
-            PigStabilizer stabilizer = heldObject.GetComponent<PigStabilizer>();
-            if (stabilizer != null)
-            {
-                stabilizer.ReleaseStack();
-            }
-
-            heldBody.linearVelocity = Vector3.zero;
-            heldBody.angularVelocity = Vector3.zero;
-            heldBody.useGravity = false;
-            heldBody.isKinematic = true;
-
-            heldObject.transform.SetParent(holdPoint);
-            heldObject.transform.localPosition = Vector3.zero;
-            heldObject.transform.localRotation = Quaternion.identity;
+            grabController.Grab();
+        }
+        else
+        {
+            Debug.LogError("GrabController no asignado en RemoteObjectServer.");
         }
     }
 
     private void Release()
     {
-        if (heldObject == null)
-            return;
-
-        heldObject.transform.SetParent(null);
-
-        if (heldBody != null)
+        if (grabController != null)
         {
-            heldBody.isKinematic = false;
-            heldBody.useGravity = true;
-            heldBody.linearVelocity = Vector3.zero;
-            heldBody.angularVelocity = Vector3.zero;
+            grabController.Release();
         }
-
-        heldObject = null;
-        heldBody = null;
+        else
+        {
+            Debug.LogError("GrabController no asignado en RemoteObjectServer.");
+        }
     }
 
     private void OnApplicationQuit() => StopServer();
@@ -281,15 +238,11 @@ public class RemoteObjectServer : MonoBehaviour
             statusText.text = message;
     }
 
- 
-    //Selecciona la mejor IP disponible dando prioridad a la tarjeta Wi-Fi real.
-    
     private static string GetBestIPv4()
     {
         string[] ips = GetAllCandidateIPv4s();
         if (ips.Length == 0) return "0.0.0.0";
 
-        // Palabras clave para identificar adaptadores Wi-Fi
         string[] wifiHints = { "wlan", "wifi", "wlo", "wl ", "wlp" };
 
         foreach (var ni in NetworkInterface.GetAllNetworkInterfaces())
@@ -310,11 +263,9 @@ public class RemoteObjectServer : MonoBehaviour
             }
         }
 
-        // Si no detecta Wi-Fi explícito, devuelve la primera IP local válida
         return ips[0];
     }
 
-    // Filtra interfaces inactivas, loopback, túneles y direcciones APIPA (169.254.x.x)
     private static string[] GetAllCandidateIPv4s()
     {
         var list = new List<string>();
@@ -333,7 +284,6 @@ public class RemoteObjectServer : MonoBehaviour
                 IPAddress ip = ua.Address;
                 if (IPAddress.IsLoopback(ip)) continue;
 
-                // Descarta direcciones sin conexión real
                 byte[] bytes = ip.GetAddressBytes();
                 if (bytes[0] == 169 && bytes[1] == 254) continue;
 
@@ -341,13 +291,5 @@ public class RemoteObjectServer : MonoBehaviour
             }
         }
         return list.Distinct().ToArray();
-    }
-    private void OnDrawGizmosSelected()
-    {
-        if (controlledObject != null)
-        {
-            Gizmos.color = Color.yellow;
-            Gizmos.DrawWireSphere(controlledObject.position, grabRadius);
-        }
     }
 }
